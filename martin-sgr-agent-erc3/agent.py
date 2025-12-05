@@ -6,6 +6,7 @@ from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
 from erc3 import erc3 as dev, ApiException, TaskInfo, ERC3
 from current_user_agent import CurrentUserQuestion, CurrentUserAgent
+from error_handling_agent import ErrorHandlingAgent, create_error_response
 import mlflow
 
 class NextStep(BaseModel):
@@ -55,6 +56,7 @@ def run_agent(client: OpenAI, model: str, api: ERC3, task: TaskInfo):
     rulebook = store_api.load_wiki("rulebook.md")
 
     current_user_agent = CurrentUserAgent(client, model, store_api)
+    error_handler = ErrorHandlingAgent(client, model)
 
     system_prompt = f"""
 You are a business assistant helping customers of Aetherion.
@@ -73,6 +75,7 @@ When task is done or can't be done - Req_ProvideAgentResponse.
 - "limit" and "offset" DO NOT set negative values, this is an error.
 - If a request returns an error, that resource cannot be found, DO NOT retry it again.
 - If you fail with a non "ok" outcome, DO NOT provide any links.
+- When asked to perform a certain action, DO first check if the action is available and allowed for the user.
 
 <file "rulebook.md">
 {rulebook.content}
@@ -149,10 +152,31 @@ When task is done or can't be done - Req_ProvideAgentResponse.
                 result = tool_call(job.function)
                 txt = result.model_dump_json(exclude_none=True, exclude_unset=True)
                 print(f"{CLI_GREEN}OUT{CLI_CLR}: {txt}")
+
+                # and now we add results back to the conversation history, so that agent
+                # we'll be able to act on the results in the next reasoning step.
+                log.append({
+                    "role": "tool",
+                    "tool_call_id": step,
+                    "function": job.function.__class__.__name__,
+                    "output": txt,
+                })
             except ApiException as e:
-                txt = e.detail
-                # print to console as ascii red
-                print(f"{CLI_RED}ERR: {e.api_error.error}{CLI_CLR}")
+                # Analyze the error using error handling agent
+                context = f"Executing {job.function.__class__.__name__}"
+                analysis = error_handler.analyze_error(e, context)
+
+                # Create final error response and exit loop
+                error_response = create_error_response(analysis)
+                print(f"{CLI_BLUE}error agent {error_response['outcome']}{CLI_CLR}. Summary:\n{error_response['message']}")
+
+                # Add error response to log as if it was the agent's decision
+                log.append({
+                    "role": "tool",
+                    "tool_call_id": step,
+                    "function": "error_handling",
+                    "content": analysis.model_dump_json()
+                })
 
             # if SGR wants to finish, then quit loop
         if isinstance(job.function, dev.Req_ProvideAgentResponse):
@@ -162,12 +186,3 @@ When task is done or can't be done - Req_ProvideAgentResponse.
                 print(f"  - link {link.kind}: {link.id}")
 
             break
-
-        # and now we add results back to the conversation history, so that agent
-        # we'll be able to act on the results in the next reasoning step.
-        log.append({
-            "role": "tool",
-            "tool_call_id": step,
-            "function": job.function.__class__.__name__,
-            "output": txt,
-        })

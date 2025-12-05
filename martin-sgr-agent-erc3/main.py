@@ -29,8 +29,9 @@ core = ERC3(key=os.getenv("EC3_API_KEY", ""))
 # exit(0)
 
 # !!! Needs to be a model that supports structured output
-# MODEL_ID = 'x-ai/grok-4.1-fast'
-MODEL_ID = 'openai/gpt-4.1-mini'
+MODEL_ID = 'x-ai/grok-4.1-fast'
+# MODEL_ID = 'openai/gpt-4.1-mini'
+# MODEL_ID = 'openai/gpt-4o-mini'
 
 # Start session with metadata
 res = core.start_session(
@@ -43,8 +44,8 @@ status = core.session_status(res.session_id)
 print(f"Session has {len(status.tasks)} tasks")
 
 failed_tasks = [
-    'not_available_feature',
-    'broken_system',
+    # 'not_available_feature',
+    # 'broken_system',
     'nonlead_pauses_project',
     'add_time_entry_me',
     'add_time_entry_lead',
@@ -67,12 +68,13 @@ for task in status.tasks:
         run_agent(client, MODEL_ID, core, task)
     except Exception as e:
         print(e)
-    finally:
-        exit(0)
+
     result = core.complete_task(task)
     if result.eval:
         explain = textwrap.indent(result.eval.logs, "  ")
         print(f"\nSCORE: {result.eval.score}\n{explain}\n")
+
+    exit(0)
 
 # core.submit_session(res.session_id)
 
