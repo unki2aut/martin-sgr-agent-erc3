@@ -1,0 +1,14 @@
+[project]
+name = "martin-sgr-agent-erc3"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "erc3>=1.1.4",
+    "openai>=2.9.0",
+    "python-dotenv>=1.2.1",
+]
+
+[[tool.uv.index]]
+url = "https://erc.timetoact-group.at/"
