@@ -1,11 +1,12 @@
-import json
 import time
 from typing import Annotated, List, Union
 from annotated_types import MaxLen, MinLen
+from mlflow.entities import SpanType
 from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
 from erc3 import erc3 as dev, ApiException, TaskInfo, ERC3
 from current_user_agent import CurrentUserQuestion, CurrentUserAgent
+import mlflow
 
 class NextStep(BaseModel):
     current_state: str
@@ -45,6 +46,7 @@ CLI_GREEN = "\x1B[32m"
 CLI_BLUE = "\x1B[34m"
 CLI_CLR = "\x1B[0m"
 
+@mlflow.trace(span_type=SpanType.AGENT)
 def run_agent(client: OpenAI, model: str, api: ERC3, task: TaskInfo):
 
     store_api = api.get_erc_client(task)
@@ -119,8 +121,6 @@ When task is done or can't be done - Req_ProvideAgentResponse.
 
         job = completion.choices[0].message.parsed
 
-        print(f"\nmodel completion:\nRequest:\n{json.dumps(log, indent=2)}\nResponse:\n{job.model_dump_json(indent=2)}\n\n")
-
         # print next sep for debugging
         print(job.plan_remaining_steps_brief[0], f"\n  {job.function}")
 
@@ -143,7 +143,10 @@ When task is done or can't be done - Req_ProvideAgentResponse.
             print(f"{CLI_GREEN}OUT{CLI_CLR}: {txt}")
         else:
             try:
-                result = store_api.dispatch(job.function)
+                @mlflow.trace(span_type=SpanType.TOOL)
+                def tool_call(function):
+                    return store_api.dispatch(function)
+                result = tool_call(job.function)
                 txt = result.model_dump_json(exclude_none=True, exclude_unset=True)
                 print(f"{CLI_GREEN}OUT{CLI_CLR}: {txt}")
             except ApiException as e:

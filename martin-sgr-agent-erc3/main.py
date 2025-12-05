@@ -4,6 +4,10 @@ from agent import run_agent
 from erc3 import ERC3
 from openai import OpenAI
 from dotenv import load_dotenv
+import mlflow
+
+mlflow.set_tracking_uri("http://localhost:5123")
+mlflow.openai.autolog()
 
 from current_user_agent import CurrentUserAgent
 from dump_wiki import dump_wiki
@@ -25,8 +29,8 @@ core = ERC3(key=os.getenv("EC3_API_KEY", ""))
 # exit(0)
 
 # !!! Needs to be a model that supports structured output
-MODEL_ID = 'x-ai/grok-4.1-fast'
-# MODEL_ID = 'openai/gpt-5-mini'
+# MODEL_ID = 'x-ai/grok-4.1-fast'
+MODEL_ID = 'openai/gpt-4.1-mini'
 
 # Start session with metadata
 res = core.start_session(
@@ -39,7 +43,7 @@ status = core.session_status(res.session_id)
 print(f"Session has {len(status.tasks)} tasks")
 
 failed_tasks = [
-    # 'not_available_feature',
+    'not_available_feature',
     'broken_system',
     'nonlead_pauses_project',
     'add_time_entry_me',
@@ -59,11 +63,12 @@ for task in status.tasks:
     core.start_task(task)
 
     try:
+        mlflow.set_experiment(f"Session: {res.session_id}, Task: {task.spec_id}")
         run_agent(client, MODEL_ID, core, task)
     except Exception as e:
         print(e)
-    # finally:
-    #     exit(0)
+    finally:
+        exit(0)
     result = core.complete_task(task)
     if result.eval:
         explain = textwrap.indent(result.eval.logs, "  ")

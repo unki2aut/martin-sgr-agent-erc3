@@ -13,3 +13,9 @@ This agent doesn't use any external libraries aside from OpenAI SDK and ERC3 SDK
 - [requirements.txt](requirements.txt) - dependencies.
 - [main.py](main.py) - entry point that connects to the ERC platform and gets a list of tasks
 - [agent.py](agent.py) - agent itself. It uses [Schema-Guided Reasoning](https://abdullin.com/schema-guided-reasoning/) and is based on simple [SGR NextStep architecture](https://abdullin.com/schema-guided-reasoning/demo)
+
+## Development:
+
+(https://mlflow.org/docs/latest/genai/tracing/quickstart/python-openai/)
+Run `ml server -p 51234` to start a local tracing server.
+Run `uv run main.py` to start and agent run.

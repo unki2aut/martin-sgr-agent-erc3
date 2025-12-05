@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "erc3>=1.1.4",
+    "mlflow>=3.7.0",
     "openai>=2.9.0",
     "python-dotenv>=1.2.1",
 ]
