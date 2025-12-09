@@ -1,7 +1,8 @@
 import json
 import os
 from typing import Literal
-from openai import OpenAI
+
+from instructor import Instructor
 from pydantic import BaseModel, Field
 from erc3 import Erc3Client
 from dotenv import load_dotenv
@@ -23,7 +24,7 @@ class CurrentUserQuestion(BaseModel):
 class CurrentUserAgent:
     _data = list()
 
-    def __init__(self, client: OpenAI, model: str, store_api: Erc3Client):
+    def __init__(self, client: Instructor, model: str, store_api: Erc3Client):
         self.client = client
         self.model = model
         self.store_api = store_api

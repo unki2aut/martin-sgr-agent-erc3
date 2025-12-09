@@ -29,3 +29,4 @@ Run `uv run main.py` to start and agent run.
 * Based on the [Schema-Guided Reasoning](https://abdullin.com/schema-guided-reasoning/) approach in the example.
 * Uses MlFlow for tracing LLM calls.
 * Uses the OpenAI lib with OpenRouter as the backend.
+* Uses the `instructor` lib to make calls to OpenRouter more reliable.

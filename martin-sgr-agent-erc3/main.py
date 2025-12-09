@@ -1,4 +1,3 @@
-import json
 import os
 import textwrap
 from agent import run_agent
@@ -6,6 +5,7 @@ from erc3 import ERC3
 from openai import OpenAI
 from dotenv import load_dotenv
 import mlflow
+import instructor
 
 from api_utils import list_projects
 
@@ -22,10 +22,12 @@ API_KEY = os.getenv("OPENROUTER_API_KEY")
 if not API_KEY:
     raise ValueError("OPENROUTER_API_KEY environment variable is not set")
 
-client = OpenAI(
+# Create OpenAI client and wrap it with instructor for more reliable structured output
+base_client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=API_KEY,
 )
+client = instructor.from_openai(base_client)
 
 core = ERC3(key=os.getenv("EC3_API_KEY", ""))
 
@@ -46,7 +48,7 @@ print(f"Session has {len(status.tasks)} tasks")
 
 failed_tasks = [
     # 'not_available_feature',
-    # 'broken_system',
+    'broken_system',
     # 'nonlead_pauses_project', project not found
     'add_time_entry_me',
     'add_time_entry_lead',

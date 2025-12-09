@@ -1,6 +1,7 @@
 import time
 from typing import Annotated, List, Union
 from annotated_types import MaxLen, MinLen
+from instructor import Instructor
 from mlflow.entities import SpanType
 from openai import OpenAI
 from pydantic import BaseModel, Field, ValidationError
@@ -48,7 +49,7 @@ CLI_BLUE = "\x1B[34m"
 CLI_CLR = "\x1B[0m"
 
 @mlflow.trace(span_type=SpanType.AGENT)
-def run_agent(client: OpenAI, model: str, api: ERC3, task: TaskInfo):
+def run_agent(client: Instructor, model: str, api: ERC3, task: TaskInfo):
 
     store_api = api.get_erc_client(task)
     about = store_api.who_am_i()
@@ -104,11 +105,14 @@ When task is done or can't be done - Req_ProvideAgentResponse.
         started = time.time()
 
         try:
-            completion = client.beta.chat.completions.parse(
+            # Using instructor for more reliable structured output
+            # instructor returns the parsed model directly, but we need usage info
+            job, completion = client.create_with_completion(
                 model=model,
-                response_format=NextStep,
+                response_model=NextStep,
                 messages=log,
-                max_completion_tokens=16384,
+                max_tokens=16384,
+                # max_retries=3, default is 3
             )
         except ValidationError as e:
             # print stack trace
@@ -117,12 +121,13 @@ When task is done or can't be done - Req_ProvideAgentResponse.
 
         api.log_llm(
             task_id=task.task_id,
-            model=model, # must match slug from OpenRouter
+            model=model, # should match model slug from OpenRouter
             duration_sec=time.time() - started,
-            usage=completion.usage,
+            completion=completion.choices[0].message.content,
+            prompt_tokens=completion.usage.prompt_tokens,
+            completion_tokens=completion.usage.completion_tokens,
+            cached_prompt_tokens=completion.usage.prompt_tokens_details.cached_tokens,
         )
-
-        job = completion.choices[0].message.parsed
 
         # print next sep for debugging
         print(job.plan_remaining_steps_brief[0], f"\n  {job.function}")

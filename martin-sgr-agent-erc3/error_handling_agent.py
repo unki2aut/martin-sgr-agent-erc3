@@ -6,7 +6,8 @@ This module analyzes API errors and determines:
 """
 
 from typing import Literal, Union
-from openai import OpenAI
+
+from instructor import Instructor
 from pydantic import BaseModel, Field
 from erc3 import ApiException
 from erc3.erc3.dtos import Outcome
@@ -46,7 +47,7 @@ class ErrorAnalysis(BaseModel):
 class ErrorHandlingAgent:
     """Agent that analyzes API errors and determines how to handle them."""
 
-    def __init__(self, client: OpenAI, model: str):
+    def __init__(self, client: Instructor, model: str):
         self.client = client
         self.model = model
 
