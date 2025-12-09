@@ -16,6 +16,16 @@ This agent doesn't use any external libraries aside from OpenAI SDK and ERC3 SDK
 
 ## Development:
 
+* Setup `.env` file with the following variables:
+  * `OPENROUTER_API_KEY` - your OpenRouter API key (you can get one for free at https://openrouter.ai/)
+  * `ERC3_API_KEY` - your ERC3 API key (get it from the ERC platform)
+  * `DEBUG` - set to `True` to enable debug logging
+
 (https://mlflow.org/docs/latest/genai/tracing/quickstart/python-openai/)
 Run `ml server -p 51234` to start a local tracing server.
 Run `uv run main.py` to start and agent run.
+
+## Architecture Decisions:
+* Based on the [Schema-Guided Reasoning](https://abdullin.com/schema-guided-reasoning/) approach in the example.
+* Uses MlFlow for tracing LLM calls.
+* Uses the OpenAI lib with OpenRouter as the backend.

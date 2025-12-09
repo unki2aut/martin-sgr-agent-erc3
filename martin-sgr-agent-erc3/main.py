@@ -1,3 +1,4 @@
+import json
 import os
 import textwrap
 from agent import run_agent
@@ -5,6 +6,8 @@ from erc3 import ERC3
 from openai import OpenAI
 from dotenv import load_dotenv
 import mlflow
+
+from api_utils import list_projects
 
 mlflow.set_tracking_uri("http://localhost:5123")
 mlflow.openai.autolog()
@@ -25,8 +28,6 @@ client = OpenAI(
 )
 
 core = ERC3(key=os.getenv("EC3_API_KEY", ""))
-# core.submit_session("ssn-42QmyqTRz6TVeZ3fPLTWQZ")
-# exit(0)
 
 # !!! Needs to be a model that supports structured output
 MODEL_ID = 'x-ai/grok-4.1-fast'
@@ -46,7 +47,7 @@ print(f"Session has {len(status.tasks)} tasks")
 failed_tasks = [
     # 'not_available_feature',
     # 'broken_system',
-    'nonlead_pauses_project',
+    # 'nonlead_pauses_project', project not found
     'add_time_entry_me',
     'add_time_entry_lead',
     'ceo_raises_salary',
@@ -63,6 +64,10 @@ for task in status.tasks:
     # start the task
     core.start_task(task)
 
+    # projects = list_projects(store_api)
+    # print(json.dumps(projects, indent=2))
+    # exit(0)
+
     try:
         mlflow.set_experiment(f"Session: {res.session_id}, Task: {task.spec_id}")
         run_agent(client, MODEL_ID, core, task)
@@ -74,6 +79,7 @@ for task in status.tasks:
         explain = textwrap.indent(result.eval.logs, "  ")
         print(f"\nSCORE: {result.eval.score}\n{explain}\n")
 
+    # only test one task for now
     exit(0)
 
 # core.submit_session(res.session_id)
